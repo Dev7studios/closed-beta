@@ -1,0 +1,9 @@
+Simple Install
+1. Login to WordPress and go to Plugins > Add New > Upload
+2. Upload closed-beta.zip and activate
+3. Edit the settings in the "Closed Beta" menu that appears.
+
+Manual Install
+1. Upload the closed-beta folder to your /wp-content/plugins/ directory.
+2. Activate the plugin through the 'Plugins' menu in WordPress.
+3. Edit the settings in the "Closed Beta" menu that appears.
