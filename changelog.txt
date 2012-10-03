@@ -1,0 +1,4 @@
+*** Closed Beta WordPress Plugin Changelog ***
+
+2012.10.01 - version 1.0
+ * Initial release
