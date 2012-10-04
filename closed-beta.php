@@ -14,6 +14,7 @@ class Dev7ClosedBeta {
     private $plugin_url;
     private $l10n;
     private $wpsf;
+    private $settings;
 
     function __construct() 
     {	
@@ -26,15 +27,20 @@ class Dev7ClosedBeta {
         require_once( $this->plugin_path .'wp-settings-framework.php' );
         $this->wpsf = new WordPressSettingsFramework( $this->plugin_path .'settings/dev7cb-settings.php' );
         add_filter( $this->wpsf->get_option_group() .'_settings_validate', array(&$this, 'validate_settings') );
+        $this->settings = wpsf_get_settings( $this->plugin_path .'settings/dev7cb-settings.php' );
         
         add_action( 'admin_init', array(&$this, 'admin_init') );
         add_action( 'admin_menu', array(&$this, 'admin_menu'), 99 );
-        add_action( 'user_register', array(&$this, 'user_register') );
-        add_action( 'lostpassword_post', array(&$this, 'lost_password') );
-        add_action( 'register_post', array( $this, 'send_approval_email'), 10, 3 );
-        add_filter( 'login_message', array(&$this, 'login_message') );
-        add_filter( 'registration_errors', array(&$this, 'registration_errors'), 10, 1 );
-        add_filter( 'wp_authenticate_user', array(&$this, 'authenticate_user'), 10, 2 );
+        add_action( 'delete_user', array(&$this, 'delete_user') );
+        if( isset($this->settings['dev7cbsettings_general_enabled']) && $this->settings['dev7cbsettings_general_enabled'] ) {
+            add_action( 'user_register', array(&$this, 'user_register') );
+            add_action( 'lostpassword_post', array(&$this, 'lost_password') );
+            add_action( 'register_post', array( $this, 'create_user'), 10, 3 );
+            add_action( 'plugins_loaded', array( $this, 'display_splash') );
+            add_filter( 'login_message', array(&$this, 'login_message') );
+            add_filter( 'registration_errors', array(&$this, 'registration_errors'), 10, 1 );
+            add_filter( 'wp_authenticate_user', array(&$this, 'authenticate_user'), 10, 2 );
+        }
     }
     
     function activate( $network_wide ) 
@@ -48,8 +54,13 @@ class Dev7ClosedBeta {
     
     function admin_init()
     {
-        if(isset($_GET['page']) && $_GET['page'] == 'closed-beta' && isset($_GET['user']) && isset($_GET['status_action'])){
-            $this->update_user($_GET['user'], $_GET['status_action']);
+        if( isset($_GET['page']) && $_GET['page'] == 'closed-beta' ){
+            if( isset($_GET['user']) && isset($_GET['status_action']) ){
+                $this->update_user($_GET['user'], $_GET['status_action']);
+            }
+            if( !isset($this->settings['dev7cbsettings_general_enabled']) || !$this->settings['dev7cbsettings_general_enabled'] ) {
+                add_action('admin_notices', array(&$this, 'admin_notice_disabled'));
+            }
         }
     }
     
@@ -69,10 +80,19 @@ class Dev7ClosedBeta {
 		if( $pending_users > 0 ){
     		$count = ' <span class="update-plugins count-'. $pending_users .'" title="'. $pending_users .' '. __( 'Users Pending Approval', $this->l10n ) .'"><span class="update-count">'. $pending_users .'</span></span>';
 		}
+		
+		$capability = 'manage_options';
+		if( isset($this->settings['dev7cbsettings_advanced_access-settings']) ) $capability = $this->settings['dev7cbsettings_advanced_access-settings'];
             			
-        $page_hook = add_menu_page( __( 'Closed Beta', $this->l10n ), __( 'Closed Beta', $this->l10n ) . $count, 'update_core', 'closed-beta', array(&$this, 'approve_users') );
-        add_submenu_page( 'closed-beta', __( 'User Approval', $this->l10n ), __( 'User Approval', $this->l10n ) . $count, 'update_core', 'closed-beta', array(&$this, 'approve_users') );
-        add_submenu_page( 'closed-beta', __( 'Settings', $this->l10n ), __( 'Settings', $this->l10n ), 'update_core', 'closed-beta-settings', array(&$this, 'settings_page') );
+        $page_hook = add_menu_page( __( 'Closed Beta', $this->l10n ), __( 'Closed Beta', $this->l10n ) . $count, $capability, 'closed-beta', array(&$this, 'approve_users') );
+        add_submenu_page( 'closed-beta', __( 'User Approval', $this->l10n ), __( 'User Approval', $this->l10n ) . $count, $capability, 'closed-beta', array(&$this, 'approve_users') );
+        add_submenu_page( 'closed-beta', __( 'Settings', $this->l10n ), __( 'Settings', $this->l10n ), $capability, 'closed-beta-settings', array(&$this, 'settings_page') );
+    }
+    
+    function delete_user()
+    {
+        // Delete pending count cache
+		delete_transient( 'dev7cb_pending_users' );
     }
     
     function settings_page()
@@ -86,6 +106,7 @@ class Dev7ClosedBeta {
 			?>
 		</div>
 		<?php
+		echo '<pre>'.print_r($this->settings,true).'</pre>';
 	}
 	
 	function validate_settings( $input )
@@ -120,12 +141,12 @@ class Dev7ClosedBeta {
 		return;
 	}
 	
-	function send_approval_email( $user_login, $user_email, $errors ) 
+	function create_user( $user_login, $user_email, $errors ) 
 	{
 		if( !$errors->get_error_code() ){
 			$user_data = get_user_by( 'login', $user_login );
-			if (!empty($user_data)){
-				$errors->add('registration_required' , __('User name already exists', $this->l10n), 'message');
+			if( !empty($user_data) ){
+				$errors->add('registration_required' , __('Username already exists', $this->l10n), 'message');
 			} else {
 				$message  = sprintf(__('%1$s (%2$s) has requested a username at %3$s', $this->l10n), $user_login, $user_email, get_option('blogname')) . "\r\n\r\n";
 				$message .= home_url() . "\r\n\r\n";
@@ -135,6 +156,9 @@ class Dev7ClosedBeta {
 
 				$user_pass = wp_generate_password();
 				$user_id = wp_create_user($user_login, $user_pass, $user_email);
+				
+				// Delete pending count cache
+				delete_transient( 'dev7cb_pending_users' );
 			}
 		}
 	}
@@ -160,6 +184,7 @@ class Dev7ClosedBeta {
 
 		$message  = sprintf( __('An email has been sent to the site administrator who will review your account request.', $this->l10n) );
 		$message .= sprintf( __('You will receive an email with instructions on what you will need to do next. Thanks for your patience.', $this->l10n) );
+		$message .= '<br /><br /><a href="'. home_url() .'">&larr; '. sprintf( __('Back to %s', $this->l10n), get_option('blogname') ) .'</a>';
 
 		$errors->add( 'registration_required', $message, 'message' );
 
@@ -230,12 +255,19 @@ class Dev7ClosedBeta {
 		}
 	}
 	
-    function admin_notice_approved(){
+    function admin_notice_approved()
+    {
         echo '<div class="updated"><p>'. __('User successfully approved.', $this->l10n) .'</p></div>';
     }
     
-    function admin_notice_denied(){
+    function admin_notice_denied()
+    {
         echo '<div class="updated"><p>'. __('User successfully denied.', $this->l10n) .'</p></div>';
+    }
+    
+    function admin_notice_disabled()
+    {
+        echo '<div class="error"><p>'. __('Closed Beta is currently disabled. Anyone can register and will be approved automatically.', $this->l10n) .'</p></div>';
     }
 	
 	function approve_users()
@@ -294,6 +326,7 @@ class Dev7ClosedBeta {
             		if( isset($wp_user_search) && $wp_user_search->total_users > 0 ){
                 		$row = 1;
                 		foreach( $wp_user_search->get_results() as $user ){
+                		    if( user_can( $user->ID, 'manage_options' ) ) continue; // Hide admins
                 			$class = ($row % 2) ? '' : ' class="alternate"';
                 			$avatar = get_avatar( $user->user_email, 32 );
                 			if( $status == 'pending' || $status == 'denied' ){
@@ -343,6 +376,93 @@ class Dev7ClosedBeta {
             </table>
 		</div>
 		<?php
+	}
+	
+	function display_splash() 
+	{
+	    if( !strstr($_SERVER['REQUEST_URI'], 'closed-beta-preview') ){
+    		if( strstr($_SERVER['PHP_SELF'], 'wp-login.php') 
+    			|| strstr($_SERVER['PHP_SELF'], 'async-upload.php')
+    			|| strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/plugins/')
+    			|| strstr($_SERVER['PHP_SELF'], 'upgrade.php')
+    			|| is_user_logged_in()
+    		) return;
+    
+    		if( strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/feed/') || strstr(htmlspecialchars($_SERVER['REQUEST_URI']), 'feed=') ){
+    			nocache_headers();
+    			$this->http_header_unavailable(); 
+    			exit;
+    		}
+    
+    		if( strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/trackback/') || strstr($_SERVER['PHP_SELF'], 'wp-trackback.php') ){
+    			nocache_headers();
+    			$this->http_header_unavailable(); 
+    			exit;
+    		}
+    
+    		if( strstr($_SERVER['PHP_SELF'], 'xmlrpc.php') ){
+                $this->http_header_unavailable(); 
+                exit;
+    		}
+    
+    		if( is_admin() || strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/wp-admin/') ){
+    			if( !is_user_logged_in() ) auth_redirect();
+    			return;
+    		}
+		}
+		
+		// Display splash
+		$page_title = 'Closed Beta';
+		if( isset($this->settings['dev7cbsettings_general_page-title']) && $this->settings['dev7cbsettings_general_page-title'] ) $page_title = $this->settings['dev7cbsettings_general_page-title'];
+		$tagline = '';
+		if( isset($this->settings['dev7cbsettings_general_tagline']) ) $tagline = $this->settings['dev7cbsettings_general_tagline'];
+		$page_content = '';
+		if( isset($this->settings['dev7cbsettings_general_page-content']) ) $page_content = $this->settings['dev7cbsettings_general_page-content'];
+		$username_label = 'Enter a username';
+		if( isset($this->settings['dev7cbsettings_general_username-label']) && $this->settings['dev7cbsettings_general_username-label'] ) $username_label = $this->settings['dev7cbsettings_general_username-label'];
+		$email_label = 'Enter your email address';
+		if( isset($this->settings['dev7cbsettings_general_email-label']) && $this->settings['dev7cbsettings_general_email-label'] ) $email_label = $this->settings['dev7cbsettings_general_email-label'];
+		$button_text = 'Sign Up';
+		if( isset($this->settings['dev7cbsettings_general_button-text']) && $this->settings['dev7cbsettings_general_button-text'] ) $button_text = $this->settings['dev7cbsettings_general_button-text'];
+		$overlay_class = 'overlay-black';
+		if( isset($this->settings['dev7cbsettings_style_overlay']) ) $overlay_class = 'overlay-'. $this->settings['dev7cbsettings_style_overlay'];
+		$style = '<style types="text/css">' . "\n";
+		$style .= 'body { ';
+		if( isset($this->settings['dev7cbsettings_style_background-color']) && $this->settings['dev7cbsettings_style_background-color'] != '' && $this->settings['dev7cbsettings_style_background-color'] != '#' ) $style .= 'background-color: '. $this->settings['dev7cbsettings_style_background-color'] .'; ';
+		if( isset($this->settings['dev7cbsettings_style_background-image']) && $this->settings['dev7cbsettings_style_background-image'] ){
+    		$style .= 'background-image: url('. $this->settings['dev7cbsettings_style_background-image'] .'); ';
+    		$background_position = '50% 0%';
+    		$background_repeat = 'no-repeat';
+    		if( isset($this->settings['dev7cbsettings_style_background-position']) && $this->settings['dev7cbsettings_style_background-position'] == 'left' ) $background_position = '0% 0%';
+    		if( isset($this->settings['dev7cbsettings_style_background-position']) && $this->settings['dev7cbsettings_style_background-position'] == 'right' ) $background_position = '100% 0%';
+    		if( isset($this->settings['dev7cbsettings_style_background-style']) && $this->settings['dev7cbsettings_style_background-style'] == 'full_stretched' ) $background_position = '50% 50%';
+    		if( isset($this->settings['dev7cbsettings_style_background-style']) && $this->settings['dev7cbsettings_style_background-style'] == 'tiled' ){
+    		    $background_position = '0% 0%';
+    		    $background_repeat = 'repeat';
+    		}
+    		$style .= 'background-position: '. $background_position .'; ';
+    		$style .= 'background-repeat: '. $background_repeat .'; ';
+    		if( isset($this->settings['dev7cbsettings_style_background-style']) && $this->settings['dev7cbsettings_style_background-style'] == 'full_stretched' ){
+        		$style .= 'background-attachment:fixed; -webkit-background-size: cover; -moz-background-size: cover; -o-background-size: cover; background-size: cover; ';
+    		}
+		}
+		$style .= '} ' . "\n";
+		$style .= 'body, #cb-content { ';
+		if( isset($this->settings['dev7cbsettings_style_text-color']) && $this->settings['dev7cbsettings_style_text-color'] != '' && $this->settings['dev7cbsettings_style_text-color'] != '#' ) $style .= 'color: '. $this->settings['dev7cbsettings_style_text-color'] .' !important; ';
+		$style .= '} ' . "\n";
+		if( isset($this->settings['dev7cbsettings_style_link-color']) && $this->settings['dev7cbsettings_style_link-color'] != '' && $this->settings['dev7cbsettings_style_link-color'] != '#' ) $style .= 'a { color: '. $this->settings['dev7cbsettings_style_link-color'] .' !important; }' . "\n";
+		$style .= '</style>' . "\n";
+		
+		if( file_exists(get_template_directory() .'/closed-beta-template.php') ){
+    		include_once( get_template_directory() .'/closed-beta-template.php' );
+		} else {
+		    if( file_exists($this->plugin_path .'template/closed-beta-template.php') ){
+    		    include_once( $this->plugin_path .'template/closed-beta-template.php' );
+    		} else {
+        		_e('Missing template file.', $this->l10n);
+    		}
+		}
+		exit;
 	}
 
 }
