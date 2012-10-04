@@ -37,16 +37,16 @@ $wpsf_settings[] = array(
             'std' => ''
         ),
         array(
-            'id' => 'username-placeholder',
-            'title' => 'Username Placeholder',
-            'desc' => 'A placeholder for the username input.',
+            'id' => 'username-label',
+            'title' => 'Username Label',
+            'desc' => 'A label for the username input.',
             'type' => 'text',
             'std' => 'Enter a username'
         ),
         array(
-            'id' => 'email-placeholder',
-            'title' => 'Email Placeholder',
-            'desc' => 'A placeholder for the email input.',
+            'id' => 'email-label',
+            'title' => 'Email Label',
+            'desc' => 'A label for the email input.',
             'type' => 'text',
             'std' => 'Enter your email address'
         ),
@@ -57,6 +57,13 @@ $wpsf_settings[] = array(
             'type' => 'text',
             'std' => 'Sign Up'
         ),
+        array(
+            'id' => 'preview',
+            'title' => '',
+            'desc' => '',
+            'type' => 'custom',
+            'std' => '<a href="'. home_url('?closed-beta-preview=true') .'" target="_blank" class="button">Preview Splash Page</a>'
+        )
     )
 );
 
@@ -82,7 +89,7 @@ $wpsf_settings[] = array(
             'choices' => array(
                 'full' => 'Full Size',
                 'full_stretched' => 'Full Size (stretched)',
-                'Tiled' => 'Tiled'
+                'tiled' => 'Tiled'
             )
         ),
         array(
@@ -102,34 +109,41 @@ $wpsf_settings[] = array(
             'title' => 'Background Color',
             'desc' => 'Choose a background color for the splash page.',
             'type' => 'color',
-            'std' => '#ffffff'
+            'std' => '#'
         ),
         array(
             'id' => 'text-color',
             'title' => 'Text Color',
             'desc' => 'Choose a text color for the splash page.',
             'type' => 'color',
-            'std' => '#000000'
+            'std' => '#'
         ),
         array(
             'id' => 'link-color',
             'title' => 'Link Color',
             'desc' => 'Choose a link color for the splash page.',
             'type' => 'color',
-            'std' => '#0059fb'
+            'std' => '#'
         ),
         array(
             'id' => 'overlay',
             'title' => 'Overlay',
             'desc' => 'Select an overlay style for the splash page.',
             'type' => 'radio',
-            'std' => 'none',
+            'std' => 'black',
             'choices' => array(
-                'none' => 'None',
                 'black' => 'Black',
-                'white' => 'White'
+                'white' => 'White',
+                'none' => 'None'
             )
         ),
+        array(
+            'id' => 'preview',
+            'title' => '',
+            'desc' => '',
+            'type' => 'custom',
+            'std' => '<a href="'. home_url('?closed-beta-preview=true') .'" target="_blank" class="button">Preview Splash Page</a>'
+        )
     )
 );
 
@@ -146,7 +160,6 @@ $wpsf_settings[] = array(
             'type' => 'select',
             'std' => 'manage_options',
             'choices' => array(
-                '' => 'No Access (always display splash page)',
                 'manage_options' => 'manage_options (Administrator)',
                 'manage_categories' => 'manage_categories (Editor)',
                 'publish_posts' => 'publish_posts (Author)',
