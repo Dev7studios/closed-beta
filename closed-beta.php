@@ -106,7 +106,7 @@ class Dev7ClosedBeta {
 			?>
 		</div>
 		<?php
-		echo '<pre>'.print_r($this->settings,true).'</pre>';
+		//echo '<pre>'.print_r($this->settings,true).'</pre>';
 	}
 	
 	function validate_settings( $input )
@@ -148,14 +148,17 @@ class Dev7ClosedBeta {
 			if( !empty($user_data) ){
 				$errors->add('registration_required' , __('Username already exists', $this->l10n), 'message');
 			} else {
-				$message  = sprintf(__('%1$s (%2$s) has requested a username at %3$s', $this->l10n), $user_login, $user_email, get_option('blogname')) . "\r\n\r\n";
+				$message  = sprintf(__('%1$s (%2$s) has requested beta access at %3$s', $this->l10n), $user_login, $user_email, get_option('blogname')) . "\r\n\r\n";
 				$message .= home_url() . "\r\n\r\n";
 				$message .= sprintf(__('To approve or deny this user access to %s go to', $this->l10n), get_option('blogname')) . "\r\n\r\n";
 				$message .= admin_url('users.php?page=closed-beta') . "\r\n";
+				$message = apply_filters( 'dev7cb_admin_approve_email', $message );
 				wp_mail( get_option('admin_email'), sprintf(__('[%s] User Approval', $this->l10n), get_option('blogname')), $message );
+				do_action( 'dev7cb_admin_approve_email', $message );
 
 				$user_pass = wp_generate_password();
 				$user_id = wp_create_user($user_login, $user_pass, $user_email);
+				do_action( 'dev7cb_create_user', $user_id );
 				
 				// Delete pending count cache
 				delete_transient( 'dev7cb_pending_users' );
@@ -166,12 +169,14 @@ class Dev7ClosedBeta {
 	function login_message( $message ) 
 	{
 		if( !isset($_GET['action']) ){
-			$inside = sprintf( __('Welcome to %s. This site is accessible to approved users only. To be approved, you must first register.', $this->l10n), get_option('blogname') );
+			$inside = sprintf( __('Welcome to %s. This site is accessible to approved beta users only. To apply for beta access you must first register.', $this->l10n), get_option('blogname') );
+			$inside = apply_filters( 'dev7cb_login_notice', $inside );
 			$message .= '<p class="message">' . $inside . '</p>';
 		}
 
 		if( isset($_GET['action']) && $_GET['action'] == 'register' && !$_POST ){
-			$inside = sprintf( __('After you register, your request will be sent to the site administrator for approval. You will then receive an email with further instructions.', $this->l10n) );
+			$inside = sprintf( __('After you register, your request will be sent to the site administrator for approval. Once approved you will then receive an email with further instructions.', $this->l10n) );
+			$inside = apply_filters( 'dev7cb_login_register_notice', $inside );
 			$message .= '<p class="message">' . $inside . '</p>';
 		}
 
@@ -182,10 +187,10 @@ class Dev7ClosedBeta {
 	{
 		if ( $errors->get_error_code() ) return $errors;
 
-		$message  = sprintf( __('An email has been sent to the site administrator who will review your account request.', $this->l10n) );
-		$message .= sprintf( __('You will receive an email with instructions on what you will need to do next. Thanks for your patience.', $this->l10n) );
+		$message  = sprintf( __('An email has been sent to the site administrator who will review your beta account request. ', $this->l10n) );
+		$message .= sprintf( __('Once approved you will receive an email with instructions on what you will need to do next.', $this->l10n) );
 		$message .= '<br /><br /><a href="'. home_url() .'">&larr; '. sprintf( __('Back to %s', $this->l10n), get_option('blogname') ) .'</a>';
-
+		$message = apply_filters( 'dev7cb_registered_notice', $message );
 		$errors->add( 'registration_required', $message, 'message' );
 
 		if( function_exists('login_header') ){
@@ -205,9 +210,11 @@ class Dev7ClosedBeta {
 
 		switch( $status ){
 			case 'pending':
+			    do_action( 'dev7cb_login_denied_pending' );
 				$userdata = new WP_Error('pending_approval', __('<strong>ERROR</strong>: Your account is still pending approval.'));
 				break;
 			case 'denied':
+			    do_action( 'dev7cb_login_denied' );
 				$userdata = new WP_Error('denied_access', __('<strong>ERROR</strong>: Your account has been denied access to this site.'));
 				break;
 		}
@@ -238,7 +245,9 @@ class Dev7ClosedBeta {
     		$message .= sprintf(__('Username: %s', $this->l10n), $user_login) . "\r\n";
     		$message .= sprintf(__('Password: %s', $this->l10n), $new_pass) . "\r\n\r\n";
     		$message .= home_url('wp-login.php') ."\r\n";
-    		@wp_mail( $user_email, sprintf(__('[%s] Registration Approved', $this->l10n), get_option('blogname')), $message );
+    		$message = apply_filters( 'dev7cb_approved_email', $message );
+    		@wp_mail( $user_email, sprintf(__('[%s] Beta Registration Approved', $this->l10n), get_option('blogname')), $message );
+    		do_action( 'dev7cb_approve_email', $message );
     
     		update_user_meta($user->ID, 'dev7cb_user_status', 'approved');
     		add_action('admin_notices', array(&$this, 'admin_notice_approved'));
@@ -247,8 +256,10 @@ class Dev7ClosedBeta {
 		if( $status == 'deny' ){
     		$user_email = stripslashes($user->user_email);
     
-    		$message = sprintf(__('You have been denied access to %s', $this->l10n), get_option('blogname'));
-    		@wp_mail( $user_email, sprintf(__('[%s] Registration Denied', $this->l10n), get_option('blogname')), $message );
+    		$message = sprintf(__('You have been denied beta access to %s', $this->l10n), get_option('blogname'));
+    		$message = apply_filters( 'dev7cb_denied_email', $message );
+    		@wp_mail( $user_email, sprintf(__('[%s] Beta Registration Denied', $this->l10n), get_option('blogname')), $message );
+    		do_action( 'dev7cb_deny_email', $message );
     
     		update_user_meta($user->ID, 'dev7cb_user_status', 'denied');
     		add_action('admin_notices', array(&$this, 'admin_notice_denied'));
@@ -387,43 +398,54 @@ class Dev7ClosedBeta {
     			|| strstr($_SERVER['PHP_SELF'], 'upgrade.php')
     			|| is_user_logged_in()
     		) return;
+        }
     
+		if( !isset($this->settings['dev7cbsettings_advanced_enablefeeds']) || !$this->settings['dev7cbsettings_advanced_enablefeeds'] ){
     		if( strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/feed/') || strstr(htmlspecialchars($_SERVER['REQUEST_URI']), 'feed=') ){
+    		    do_action( 'dev7cb_block_feed' );
     			nocache_headers();
     			$this->http_header_unavailable(); 
     			exit;
     		}
-    
+		}
+
+		if( !isset($this->settings['dev7cbsettings_advanced_enabletrackbacks']) || !$this->settings['dev7cbsettings_advanced_enabletrackbacks'] ){
     		if( strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/trackback/') || strstr($_SERVER['PHP_SELF'], 'wp-trackback.php') ){
+    		    do_action( 'dev7cb_block_trackback' );
     			nocache_headers();
     			$this->http_header_unavailable(); 
     			exit;
     		}
-    
+		}
+
+		if( !isset($this->settings['dev7cbsettings_advanced_enablexmlrpc']) || !$this->settings['dev7cbsettings_advanced_enablexmlrpc'] ){
     		if( strstr($_SERVER['PHP_SELF'], 'xmlrpc.php') ){
+    		    do_action( 'dev7cb_block_xmlrpc' );
                 $this->http_header_unavailable(); 
                 exit;
     		}
-    
-    		if( is_admin() || strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/wp-admin/') ){
-    			if( !is_user_logged_in() ) auth_redirect();
-    			return;
-    		}
+		}
+
+		if( is_admin() || strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/wp-admin/') ){
+			if( !is_user_logged_in() ) auth_redirect();
+			return;
 		}
 		
 		// Display splash
-		$page_title = 'Closed Beta';
+		$page_title = __( 'Closed Beta' );
 		if( isset($this->settings['dev7cbsettings_general_page-title']) && $this->settings['dev7cbsettings_general_page-title'] ) $page_title = $this->settings['dev7cbsettings_general_page-title'];
 		$tagline = '';
 		if( isset($this->settings['dev7cbsettings_general_tagline']) ) $tagline = $this->settings['dev7cbsettings_general_tagline'];
-		$page_content = '';
+		$page_content = __( 'This site can only be accessed by approved users.' );
 		if( isset($this->settings['dev7cbsettings_general_page-content']) ) $page_content = $this->settings['dev7cbsettings_general_page-content'];
-		$username_label = 'Enter a username';
+		$username_label = __( 'Enter a username' );
 		if( isset($this->settings['dev7cbsettings_general_username-label']) && $this->settings['dev7cbsettings_general_username-label'] ) $username_label = $this->settings['dev7cbsettings_general_username-label'];
-		$email_label = 'Enter your email address';
+		$email_label = __( 'Enter your email address' );
 		if( isset($this->settings['dev7cbsettings_general_email-label']) && $this->settings['dev7cbsettings_general_email-label'] ) $email_label = $this->settings['dev7cbsettings_general_email-label'];
-		$button_text = 'Sign Up';
-		if( isset($this->settings['dev7cbsettings_general_button-text']) && $this->settings['dev7cbsettings_general_button-text'] ) $button_text = $this->settings['dev7cbsettings_general_button-text'];
+		$signup_text = __( 'Sign Up' );
+		if( isset($this->settings['dev7cbsettings_general_signup-text']) && $this->settings['dev7cbsettings_general_signup-text'] ) $signup_text = $this->settings['dev7cbsettings_general_signup-text'];
+		$login_text = __( 'Login' );
+		if( isset($this->settings['dev7cbsettings_general_login-text']) && $this->settings['dev7cbsettings_general_login-text'] ) $login_text = $this->settings['dev7cbsettings_general_login-text'];
 		$overlay_class = 'overlay-black';
 		if( isset($this->settings['dev7cbsettings_style_overlay']) ) $overlay_class = 'overlay-'. $this->settings['dev7cbsettings_style_overlay'];
 		$style = '<style types="text/css">' . "\n";
@@ -451,8 +473,10 @@ class Dev7ClosedBeta {
 		if( isset($this->settings['dev7cbsettings_style_text-color']) && $this->settings['dev7cbsettings_style_text-color'] != '' && $this->settings['dev7cbsettings_style_text-color'] != '#' ) $style .= 'color: '. $this->settings['dev7cbsettings_style_text-color'] .' !important; ';
 		$style .= '} ' . "\n";
 		if( isset($this->settings['dev7cbsettings_style_link-color']) && $this->settings['dev7cbsettings_style_link-color'] != '' && $this->settings['dev7cbsettings_style_link-color'] != '#' ) $style .= 'a { color: '. $this->settings['dev7cbsettings_style_link-color'] .' !important; }' . "\n";
+		if( isset($this->settings['dev7cbsettings_style_custom-css']) && $this->settings['dev7cbsettings_style_custom-css'] ) $style .= $this->settings['dev7cbsettings_style_custom-css'] . "\n";
 		$style .= '</style>' . "\n";
 		
+		do_action( 'dev7cb_before_template' );
 		if( file_exists(get_template_directory() .'/closed-beta-template.php') ){
     		include_once( get_template_directory() .'/closed-beta-template.php' );
 		} else {
@@ -462,6 +486,7 @@ class Dev7ClosedBeta {
         		_e('Missing template file.', $this->l10n);
     		}
 		}
+		do_action( 'dev7cb_after_template' );
 		exit;
 	}
 

@@ -11,7 +11,7 @@
 </head>
 <body>
 
-    <a href="<?php echo home_url('wp-login.php'); ?>" id="cb-login">Login</a>
+    <a href="<?php echo home_url('wp-login.php'); ?>" id="cb-login"><?php echo $login_text; ?></a>
 
     <div id="cb-background"></div>
 
@@ -25,7 +25,7 @@
                 <input type="text" name="user_login" id="user_login" class="user-login" value="" /><br />
                 <label for="user_email"><?php echo $email_label; ?></label>
                 <input type="email" name="user_email" id="user_email" class="user-email" value="" /><br />
-            	<input type="submit" name="wp-submit" id="wp-submit" class="submit" value="<?php echo $button_text; ?>" />
+            	<button type="submit" name="wp-submit" id="wp-submit" class="submit"><?php echo $signup_text; ?></button>
             </form>
         </div>
     </div>

@@ -51,11 +51,18 @@ $wpsf_settings[] = array(
             'std' => 'Enter your email address'
         ),
         array(
-            'id' => 'button-text',
-            'title' => 'Button Text',
-            'desc' => 'The text of the submit button.',
+            'id' => 'signup-text',
+            'title' => '"Sign Up" Button Text',
+            'desc' => 'The text of the "Sign Up" button.',
             'type' => 'text',
             'std' => 'Sign Up'
+        ),
+        array(
+            'id' => 'login-text',
+            'title' => '"Login" Button Text',
+            'desc' => 'The text of the "Login" button.',
+            'type' => 'text',
+            'std' => 'Login'
         ),
         array(
             'id' => 'preview',
@@ -138,6 +145,13 @@ $wpsf_settings[] = array(
             )
         ),
         array(
+            'id' => 'custom-css',
+            'title' => 'Custom CSS',
+            'desc' => 'Add any custom CSS here.',
+            'type' => 'textarea',
+            'std' => ''
+        ),
+        array(
             'id' => 'preview',
             'title' => '',
             'desc' => '',
@@ -166,6 +180,27 @@ $wpsf_settings[] = array(
                 'edit_posts' => 'edit_posts (Contributor)',
                 'read' => 'read (Subscriber)'
             )
+        ),
+        array(
+            'id' => 'enablefeeds',
+            'title' => 'Enable Feeds',
+            'desc' => '',
+            'type' => 'checkbox',
+            'std' => 0
+        ),
+        array(
+            'id' => 'enabletrackbacks',
+            'title' => 'Enable Trackbacks',
+            'desc' => '',
+            'type' => 'checkbox',
+            'std' => 0
+        ),
+        array(
+            'id' => 'enablexmlrpc',
+            'title' => 'Enable XMLRPC Publishing',
+            'desc' => '',
+            'type' => 'checkbox',
+            'std' => 0
         ),
     )
 );
