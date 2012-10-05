@@ -150,9 +150,7 @@ button {  width: auto; overflow: visible; }
 /*=== Default Styles ===*/
 /*======================*/
 
-#cb-content-wrap {
-    padding: 100px 0;
-}
+#cb-content-wrap { padding: 100px 0; }
 #cb-content {
     width: 600px;
     margin: 0 auto;
@@ -179,10 +177,40 @@ button {  width: auto; overflow: visible; }
     position: absolute;
     top: 0;
     right: 100px;
+}
+#cb-login,
+#cb-content button {
+    font: 14px/22px "Helvetica Neue", Helvetica, Arial, sans-serif;
     background: #67AE32;
     color: #fff;
     text-decoration: none;
     padding: 5px 15px 7px 15px;
+    border: 0;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.2);
+}
+
+#cb-content label { display: block; }
+#cb-content input { 
+    width: 96%; 
+    font: 14px/22px "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: #fff;
+    border: 1px solid #999;
+    padding: 5px 10px;
+    margin-bottom: 10px;
+}
+#cb-content.overlay-black input { border-color: #000; }
+
+@media only screen 
+and (max-width : 660px) {
+    
+    #cb-content-wrap { padding: 50px 20px; }
+    #cb-content { 
+        width: 100%; 
+        -webkit-box-sizing: border-box;
+    	-moz-box-sizing: border-box;
+    	box-sizing: border-box;  
+    }
+    
 }
 
 /*====================*/
