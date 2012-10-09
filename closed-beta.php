@@ -62,6 +62,8 @@ class Dev7ClosedBeta {
                 add_action('admin_notices', array(&$this, 'admin_notice_disabled'));
             }
         }
+        
+        wp_register_style( 'dev7cb', $this->plugin_url .'/closed-beta.css', array(), '1.0' );
     }
     
     function admin_menu()
@@ -87,6 +89,13 @@ class Dev7ClosedBeta {
         $page_hook = add_menu_page( __( 'Closed Beta', $this->l10n ), __( 'Closed Beta', $this->l10n ) . $count, $capability, 'closed-beta', array(&$this, 'approve_users') );
         add_submenu_page( 'closed-beta', __( 'User Approval', $this->l10n ), __( 'User Approval', $this->l10n ) . $count, $capability, 'closed-beta', array(&$this, 'approve_users') );
         add_submenu_page( 'closed-beta', __( 'Settings', $this->l10n ), __( 'Settings', $this->l10n ), $capability, 'closed-beta-settings', array(&$this, 'settings_page') );
+        
+        add_action( 'admin_print_styles-'. $page_hook, array(&$this, 'admin_print_styles') );
+    }
+    
+    function admin_print_styles()
+    {
+        wp_enqueue_style( 'dev7cb' );
     }
     
     function delete_user()
@@ -366,8 +375,8 @@ class Dev7ClosedBeta {
                 				<td class="name column-name"><?php echo get_user_meta( $user->ID, 'first_name', true ) .' '. get_user_meta( $user->ID, 'last_name', true ); ?></td>
                 				<td class="email column-email"><a href="mailto:<?php echo $user->user_email; ?>" title="<?php _e('E-mail:', $this->l10n); ?> <?php echo $user->user_email; ?>"><?php echo $user->user_email; ?></a></td>
                 				<td>
-                    				<?php if( isset($approve_link) ){ ?><a href="<?php echo $approve_link; ?>" title="<?php _e('Approve', $this->l10n); ?> <?php echo $user->user_login; ?>" style="color:green"><?php _e('Approve', $this->l10n); ?></a>&nbsp;<?php } ?>
-                    				<?php if( isset($deny_link) ){ ?><a href="<?php echo $deny_link; ?>" title="<?php _e('Deny', $this->l10n); ?> <?php echo $user->user_login; ?>" style="color:red"><?php _e('Deny', $this->l10n); ?></a><?php } ?>
+                    				<?php if( isset($approve_link) ){ ?><a href="<?php echo $approve_link; ?>" title="<?php _e('Approve', $this->l10n); ?> <?php echo $user->user_login; ?>" class="dev7cb-approve"><?php _e('Approve', $this->l10n); ?></a><?php } ?>
+                    				<?php if( isset($deny_link) ){ ?><a href="<?php echo $deny_link; ?>" title="<?php _e('Deny', $this->l10n); ?> <?php echo $user->user_login; ?>" class="dev7cb-deny"><?php _e('Deny', $this->l10n); ?></a><?php } ?>
                 				</td>
                 			</tr><?php
                 			$row++;
