@@ -3,3 +3,9 @@
     margin-right: 5px;
 }
 .dev7cb-deny { color:#BC0B0B; }
+
+.dev7cb-section { 
+    display: none; 
+    padding-top: 10px;
+}
+.dev7cb-section-active { display: block; }
