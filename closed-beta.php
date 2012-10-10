@@ -40,6 +40,10 @@ class Dev7ClosedBeta {
             add_filter( 'login_message', array(&$this, 'login_message') );
             add_filter( 'registration_errors', array(&$this, 'registration_errors'), 10, 1 );
             add_filter( 'wp_authenticate_user', array(&$this, 'authenticate_user'), 10, 2 );
+            
+            // Override Registration settings
+            update_option( 'users_can_register', true );
+            add_action( "admin_print_scripts-options-general.php", array(&$this, 'admin_print_scripts_options_general') );
         }
     }
     
@@ -50,6 +54,11 @@ class Dev7ClosedBeta {
 		
 		$exit_msg = sprintf( __('Closed Beta requires WordPress %s or newer.', $this->l10n), $min_wp_version );
 		if( version_compare( $wp_version, $min_wp_version, '<=' ) ) exit($exit_msg);
+    }
+    
+    function admin_print_scripts_options_general()
+    {
+        wp_enqueue_script( 'dev7cb' );
     }
     
     function admin_init()
@@ -63,7 +72,8 @@ class Dev7ClosedBeta {
             }
         }
         
-        wp_register_style( 'dev7cb', $this->plugin_url .'/closed-beta.css', array(), '1.0' );
+        wp_register_style( 'dev7cb', $this->plugin_url .'closed-beta.css', array(), '1.0' );
+        wp_register_script( 'dev7cb', $this->plugin_url .'closed-beta.js', array('jquery'), '1.0' );
     }
     
     function admin_menu()
@@ -86,11 +96,12 @@ class Dev7ClosedBeta {
 		$capability = 'manage_options';
 		if( isset($this->settings['dev7cbsettings_advanced_access-settings']) ) $capability = $this->settings['dev7cbsettings_advanced_access-settings'];
             			
-        $page_hook = add_menu_page( __( 'Closed Beta', $this->l10n ), __( 'Closed Beta', $this->l10n ) . $count, $capability, 'closed-beta', array(&$this, 'approve_users') );
-        add_submenu_page( 'closed-beta', __( 'User Approval', $this->l10n ), __( 'User Approval', $this->l10n ) . $count, $capability, 'closed-beta', array(&$this, 'approve_users') );
-        add_submenu_page( 'closed-beta', __( 'Settings', $this->l10n ), __( 'Settings', $this->l10n ), $capability, 'closed-beta-settings', array(&$this, 'settings_page') );
+        $approval_hook = add_menu_page( __( 'Closed Beta', $this->l10n ), __( 'Closed Beta', $this->l10n ) . $count, $capability, 'closed-beta', array(&$this, 'approve_users'), $this->plugin_url .'images/favicon.png' );
+        add_submenu_page( 'closed-beta', __( 'Closed Beta User Approval', $this->l10n ), __( 'User Approval', $this->l10n ) . $count, $capability, 'closed-beta', array(&$this, 'approve_users') );
+        $settings_hook = add_submenu_page( 'closed-beta', __( 'Closed Beta Settings', $this->l10n ), __( 'Settings', $this->l10n ), $capability, 'closed-beta-settings', array(&$this, 'settings_page') );
         
-        add_action( 'admin_print_styles-'. $page_hook, array(&$this, 'admin_print_styles') );
+        add_action( 'admin_print_styles-'. $approval_hook, array(&$this, 'admin_print_styles') );
+        add_action( 'admin_print_styles-'. $settings_hook, array(&$this, 'admin_print_styles') );
     }
     
     function admin_print_styles()
@@ -106,17 +117,47 @@ class Dev7ClosedBeta {
     
     function settings_page()
 	{
+	    global $wpsf_settings;
+	    $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general'; 
 	    ?>
 		<div class="wrap">
 			<div id="icon-options-general" class="icon32"></div>
-			<h2><?php _e('Closed Beta', $this->l10n) ?></h2>
-			<?php 
-			$this->wpsf->settings(); 
-			?>
+			<h2><?php _e('Closed Beta Settings', $this->l10n) ?></h2>
+			<h2 class="nav-tab-wrapper">
+			    <?php foreach( $wpsf_settings as $tab ){ ?>
+        		<a href="?page=<?php echo $_GET['page']; ?>&tab=<?php echo $tab['section_id']; ?>" class="nav-tab<?php echo $active_tab == $tab['section_id'] ? ' nav-tab-active' : ''; ?>"><?php echo $tab['section_title']; ?></a>
+        		<?php } ?>
+        	</h2>
+			<form action="options.php" method="post">
+                <?php settings_fields( $this->wpsf->get_option_group() ); ?>
+        		<?php $this->do_settings_sections( $this->wpsf->get_option_group() ); ?>
+        		<p class="submit"><input type="submit" class="button-primary" value="<?php _e( 'Save Changes', $this->l10n ); ?>" /></p>
+			</form>
 		</div>
 		<?php
-		//echo '<pre>'.print_r($this->settings,true).'</pre>';
+		//echo '<pre>'.print_r($wpsf_settings,true).'</pre>';
 	}
+	
+	function do_settings_sections($page) {
+        global $wp_settings_sections, $wp_settings_fields;
+        $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general'; 
+
+        if ( !isset($wp_settings_sections) || !isset($wp_settings_sections[$page]) )
+            return;
+
+        foreach ( (array) $wp_settings_sections[$page] as $section ) {
+            echo '<div id="section-'. $section['id'] .'"class="dev7cb-section'. ($active_tab == $section['id'] ? ' dev7cb-section-active' : '') .'">';
+            /*if ( $section['title'] )
+                    echo "<h3>{$section['title']}</h3>\n";*/
+            call_user_func($section['callback'], $section);
+            if ( !isset($wp_settings_fields) || !isset($wp_settings_fields[$page]) || !isset($wp_settings_fields[$page][$section['id']]) )
+                    continue;
+            echo '<table class="form-table">';
+            do_settings_fields($page, $section['id']);
+            echo '</table>
+            </div>';
+        }
+    }
 	
 	function validate_settings( $input )
 	{
