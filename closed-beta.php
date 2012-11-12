@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: Closed Beta
-Plugin URI: http://dev7studios.com
+Plugin URI: http://codecanyon.net/item/closed-beta-wordpress-plugin/3395536?ref=gilbitron
 Description: A plugin for controlling access to a "closed beta" site.
-Version: 1.0
+Version: 1.1
 Author: Dev7studios
 Author URI: http://dev7studios.com
 */
@@ -45,6 +45,9 @@ class Dev7ClosedBeta {
             update_option( 'users_can_register', true );
             add_action( "admin_print_scripts-options-general.php", array(&$this, 'admin_print_scripts_options_general') );
         }
+        
+        require_once( $this->plugin_path .'wp-updates-plugin.php' );
+        new WPUpdatesPluginUpdater( 'http://wp-updates.com/api/1/plugin', 55, plugin_basename(__FILE__) );
     }
     
     function activate( $network_wide ) 
@@ -488,7 +491,7 @@ class Dev7ClosedBeta {
 		$tagline = '';
 		if( isset($this->settings['dev7cbsettings_general_tagline']) ) $tagline = $this->settings['dev7cbsettings_general_tagline'];
 		$page_content = __( 'This site can only be accessed by approved users.' );
-		if( isset($this->settings['dev7cbsettings_general_page-content']) ) $page_content = $this->settings['dev7cbsettings_general_page-content'];
+		if( isset($this->settings['dev7cbsettings_general_page-content']) ) $page_content = wpautop($this->settings['dev7cbsettings_general_page-content']);
 		$username_label = __( 'Enter a username' );
 		if( isset($this->settings['dev7cbsettings_general_username-label']) && $this->settings['dev7cbsettings_general_username-label'] ) $username_label = $this->settings['dev7cbsettings_general_username-label'];
 		$email_label = __( 'Enter your email address' );

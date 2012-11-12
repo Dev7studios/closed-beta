@@ -1,4 +1,8 @@
 *** Closed Beta WordPress Plugin Changelog ***
 
+2012.11.12 - version 1.1
+ * [New] Added automatic updating
+ * [Fixed] Apply wpautop for splash page content
+
 2012.11.09 - version 1.0
  * Initial release

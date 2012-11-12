@@ -205,4 +205,24 @@ $wpsf_settings[] = array(
     )
 );
 
+// Support section
+$wpsf_settings[] = array(
+    'section_id' => 'support',
+    'section_title' => 'Support',
+    'section_order' => 4,
+    'fields' => array(
+        array(
+            'id' => 'useful-links',
+            'title' => 'Useful Links',
+            'desc' => '',
+            'type' => 'custom',
+            'std' => 'Website: <a href="http://codecanyon.net/item/showcase-wordpress-gallery-plugin/2866252?ref=gilbitron">Closed Beta</a><br />
+            Created by: <a href="http://dev7studios.com">Dev7studios</a><br />
+            Support: <a href="http://support.dev7studios.com/discussions/closed-beta-wordpress-plugin">Support Forums</a><br />
+            Changelog: <a href="http://codecanyon.net/item/showcase-wordpress-gallery-plugin/2866252?ref=gilbitron">Changelog</a><br />
+            Automatic Updates: <a href="http://wp-updates.com">WP Updates</a><br />'
+        )
+    )
+);
+
 ?>
