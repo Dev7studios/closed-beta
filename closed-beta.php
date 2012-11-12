@@ -443,6 +443,7 @@ class Dev7ClosedBeta {
 	{
 	    if( !strstr($_SERVER['REQUEST_URI'], 'closed-beta-preview') ){
     		if( strstr($_SERVER['PHP_SELF'], 'wp-login.php') 
+    		    || strstr($_SERVER['PHP_SELF'], 'wp-signup.php') 
     			|| strstr($_SERVER['PHP_SELF'], 'async-upload.php')
     			|| strstr(htmlspecialchars($_SERVER['REQUEST_URI']), '/plugins/')
     			|| strstr($_SERVER['PHP_SELF'], 'upgrade.php')
